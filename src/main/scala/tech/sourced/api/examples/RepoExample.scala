@@ -1,6 +1,6 @@
 package tech.sourced.api.examples
 
-import org.apache.spark.sql.{DataFrameReader, SparkSession}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, SparkSession}
 import org.apache.spark.sql.sources.{EqualTo, GreaterThan, StringStartsWith}
 import tech.sourced.api.RepositoryRelation
 
@@ -31,20 +31,25 @@ object RepoExample {
       .read.format("git-local")
       .load(pathToRepos)
 
-    // through API
-    import org.apache.spark.sql.functions._
-    //reposDF.filter(col("isFork") == true).show()
-
-    import spark.implicits._
-    //reposDF.filter($"isFork" == true).show()
-
     reposDF.select("repoURL").show()
 
-    // more advanced
-    //val reposDF = spark.read.gitLocal(pathToRepos)
 
+    // through API
+    import spark.implicits._
+    reposDF.filter(reposDF("isFork") === true).show()
+    reposDF.filter($"isFork" === false).show()
+
+    // more advanced
+    import Update._
+    val reposDF2 = spark.read.localGit(pathToRepos)
+    reposDF2.select("size").show()
   }
 
+}
 
 
+object Update {
+  implicit class RepoDataFrameReader(val reader: DataFrameReader) extends AnyVal {
+    def localGit(path: String): DataFrame = reader.format("git-local").load(path)
+  }
 }
